@@ -73,6 +73,44 @@ __kernel void bitonic_sort(__global data_t* input, idx_t input_size)
 }
 
 
+__kernel void bitonic_sort_batched(__global data_t* input, idx_t single_batch_size)
+{    
+    __local data_t cache[CACHE_SIZE];
+    
+    idx_t batch_idx = get_group_id(0);
+    idx_t local_idx = get_local_id(0);
+    idx_t total = single_batch_size * get_global_dim(0);
+    idx_t cache_access_base = local_idx * 2;
+    idx_t global_access_base = batch_idx * single_batch_size + cache_access_base;
+
+    data_t a = global_access_base < total ? input[global_access_base] : FLT_MAX;
+    data_t b = (global_access_base + 1) < total ? input[global_access_base + 1] : FLT_MAX;
+
+    bool flip = !(a < b) ^ (local_idx & 1);
+    if (flip)
+    {                
+       cache[cache_access_base] = b;
+       cache[cache_access_base + 1] = a;
+    }
+    else
+    {       
+        cache[cache_access_base] = a;
+        cache[cache_access_base + 1] = b;
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+    
+    bitonic_sort_local_mem(cache, local_idx);
+
+    if (global_access_base < total)
+    {    
+        input[global_access_base] = cache[cache_access_base];
+        if ((global_access_base + 1) < input_size)
+        {     
+            input[global_access_base + 1] = cache[cache_access_base + 1];
+        }  
+    }
+}
+
 
 
 )""
