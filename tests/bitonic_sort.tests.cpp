@@ -34,8 +34,8 @@ TEST_CASE("bitonic sort", "[algo] [sort]")
     auto queue = boost::compute::system::default_queue();
     auto host_vec = generate_uniformly_distributed_vec(512, -135416.0f, 41230.0f);
 
-    host_vec[0] = host_vec[231];
-    host_vec[5] = host_vec[234];
+    //host_vec[0] = host_vec[231];
+    //host_vec[5] = host_vec[234];
 
     bc::vector<float> device_vec(host_vec.begin(), host_vec.end());
     auto program = bc::program::build_with_source(
@@ -46,6 +46,7 @@ TEST_CASE("bitonic sort", "[algo] [sort]")
 
     auto kernel = program.create_kernel("bitonic_sort");
     kernel.set_arg(0, device_vec);
+    kernel.set_arg(1, static_cast<unsigned>(device_vec.size()));
     queue.enqueue_1d_range_kernel(
         kernel,
         0, 256, 256);
