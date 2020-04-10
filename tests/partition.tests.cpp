@@ -132,15 +132,15 @@ TEST_CASE("gpu partition - batched", "[algo] [sort] [fail]")
         partition_kernel.set_arg(0, src);
         partition_kernel.set_arg(1, dst);
         partition_kernel.set_arg(2, parents);
-        partition_kernel.set_arg(3, static_cast<unsigned>(input.size()));
-
+        partition_kernel.set_arg(3, single_batch_size);
+        partition_kernel.set_arg(4, batches_count);
         auto global_size = batches_count * groups_per_batch * local_size;
 
         for (auto pivot : pivots)
         {
             bc::copy(host_parents.begin(), host_parents.end(), parents.begin());
 
-            partition_kernel.set_arg(4, pivot);
+            partition_kernel.set_arg(5, pivot);
             queue.enqueue_1d_range_kernel(partition_kernel, 4, global_size, local_size);
 
             bc::copy(dst.begin(), dst.end(), host_output.begin(), queue);
