@@ -152,6 +152,8 @@ void segment_partition(
     }
 }
 
+
+
 __kernel void partition(    
     global data_t* src, 
     global data_t* dst,
@@ -163,13 +165,46 @@ __kernel void partition(
     local idx_t smaller_than_pivot_global_offset;
     local idx_t greater_than_pivot_global_offset;
 
-    const idx_t segment_idx = get_group_id(0);
-
     partition_segment segment;
     segment.start = 0; // inclusive, global start of the partition segment
     segment.end = count; // exclusive
     segment.pivot = pivot;
     segment.parent_segment_idx = 0;
+
+    segment_partition(
+        src,
+        dst,
+        segment,
+        parent,
+        &smaller_than_pivot_global_offset,
+        &greater_than_pivot_global_offset
+        );
+
+}
+
+
+
+__kernel void partition_batched(    
+    global data_t* src, 
+    global data_t* dst,
+    global parent_segment* parents,
+    idx_t single_batch_size,
+    idx_t batches_count,
+    data_t pivot
+    )
+{    
+    local idx_t smaller_than_pivot_global_offset;
+    local idx_t greater_than_pivot_global_offset;
+
+    idx_t groups_count = get_num_groups(0);
+    idx_t groups_per_batch = groups_count / batches_count;
+    const idx_t batch_idx = get_group_id(0) / groups_per_batch;
+
+    partition_segment segment;
+    segment.start = batch_idx * single_batch_size; // inclusive, global start of the partition segment
+    segment.end = segment.start + single_batch_size; // exclusive
+    segment.pivot = pivot;
+    segment.parent_segment_idx = batch_idx;
 
     segment_partition(
         src,
