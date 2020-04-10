@@ -210,7 +210,7 @@ __kernel void partition_batched(
         src,
         dst,
         segment,
-        parent,
+        parents,
         &smaller_than_pivot_global_offset,
         &greater_than_pivot_global_offset
         );

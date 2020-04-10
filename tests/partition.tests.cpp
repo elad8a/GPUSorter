@@ -115,10 +115,14 @@ TEST_CASE("gpu partition - batched", "[algo] [sort] [fail]")
     {    
         std::vector<data_t> input = generate_uniformly_distributed_vec(single_batch_size * batches_count, min_val, max_val);
         std::vector<data_t> host_output(input.size());
-        parent_segment host_parent{};
-        host_parent.current_smaller_than_pivot_start_idx = 0;
-        host_parent.current_greater_than_pivot_end_idx = static_cast<unsigned>(input.size());
-        host_parent.start_segment_global_idx = 0;
+        std::vector<parent_segment> host_parents(batches_count);
+        for (auto i = 0u; i < batches_count; ++i)
+        {
+            host_parents[i].current_smaller_than_pivot_start_idx = i * single_batch_size;
+            host_parents[i].current_greater_than_pivot_end_idx = (i + 1) * single_batch_size;
+            host_parents[i].start_segment_global_idx = i * groups_per_batch;
+        }
+
 
         bc::vector<data_t> src(input.begin(), input.end(), queue);
         bc::vector<data_t> dst(host_output.begin(), host_output.end(), queue);
@@ -134,7 +138,8 @@ TEST_CASE("gpu partition - batched", "[algo] [sort] [fail]")
 
         for (auto pivot : pivots)
         {
-            parents[0] = host_parent;
+            bc::copy(host_parents.begin(), host_parents.end(), parents.begin());
+
             partition_kernel.set_arg(4, pivot);
             queue.enqueue_1d_range_kernel(partition_kernel, 4, global_size, local_size);
 
