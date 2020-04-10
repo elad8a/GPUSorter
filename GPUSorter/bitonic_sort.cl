@@ -120,7 +120,7 @@ __kernel void bitonic_sort_batched(__global data_t* input, idx_t single_batch_si
     cache[cache_access_base + 1] = cache_access_base + 1;
     barrier(CLK_LOCAL_MEM_FENCE);
     
-    //bitonic_sort_local_mem(cache, local_idx);
+    bitonic_sort_local_mem(cache, local_idx);
 
     if (cache_access_base < single_batch_size)
     {    

@@ -197,12 +197,22 @@ __kernel void partition_batched(
     local idx_t greater_than_pivot_global_offset;
 
     idx_t groups_count = get_num_groups(0);
-    idx_t groups_per_batch = groups_count / batches_count;
+    idx_t groups_per_batch = groups_count / batches_count; // assumes groups_count = K * batches_count where K is a positive integral
+    idx_t elements_per_group = single_batch_size / groups_per_batch;
+    idx_t elements_per_group_remainder = single_batch_size % groups_per_batch;
+
     const idx_t batch_idx = get_group_id(0) / groups_per_batch;
+    const idx_t idx_within_batch = get_group_id(0) % groups_per_batch;
+
 
     partition_segment segment;
-    segment.start = batch_idx * single_batch_size; // inclusive, global start of the partition segment
-    segment.end = segment.start + single_batch_size; // exclusive
+    segment.start = batch_idx * single_batch_size + idx_within_batch * elements_per_group; // inclusive, global start of the partition segment
+    segment.end = segment.start + elements_per_group; // exclusive
+    if ((idx_within_batch + 1) == groups_per_batch)
+    {
+        segment.end += elements_per_group_remainder;
+    }
+    
     segment.pivot = pivot;
     segment.parent_segment_idx = batch_idx;
 

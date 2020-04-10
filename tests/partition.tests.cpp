@@ -162,7 +162,7 @@ TEST_CASE("gpu partition - batched", "[algo] [sort] [fail]")
 
     SECTION("single batch, multiple group per batch")
     {
-        checker(local_size * 4 - 13, 1, 2);
+        checker(local_size * 2, 1, 2);
         checker(local_size * 4 + 13, 1, 3);
         checker(local_size * 4, 1, 2);
     }
