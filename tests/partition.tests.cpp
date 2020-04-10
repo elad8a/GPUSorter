@@ -44,25 +44,28 @@ TEST_CASE("gpu partition - single chunk", "[algo] [sort] [fail]")
         bc::vector<data_t> src(input.begin(), input.end(), queue);
         bc::vector<data_t> dst(host_output.begin(), host_output.end(), queue);
         bc::vector<parent_segment> parents(1, queue.get_context());
-        parents[0] = host_parent;
+
 
         partition_kernel.set_arg(0, src);
         partition_kernel.set_arg(1, dst);
-        partition_kernel.set_arg(3, parents);
-        partition_kernel.set_arg(4, static_cast<unsigned>(input.size()));
+        partition_kernel.set_arg(2, parents);
+        partition_kernel.set_arg(3, static_cast<unsigned>(input.size()));
 
  
 
         for (auto pivot : pivots)
         {
-            queue.enqueue_1d_range_kernel(partition_kernel, 0, global_size, local_size);
+            parents[0] = host_parent;
+            partition_kernel.set_arg(4, pivot);
+            queue.enqueue_1d_range_kernel(partition_kernel, 4, global_size, local_size);
 
             bc::copy(dst.begin(), dst.end(), host_output.begin(), queue);
             if (pivot != min_val && pivot != max_val)
             {
                 CHECK(!is_partitioned(input.begin(), input.end(), [=](auto val) {return val < pivot; }));
             }
-            REQUIRE(is_partitioned(host_output.begin(), host_output.end(), [=](auto val) {return val < pivot; }));
+            auto is_partition = is_partitioned(host_output.begin(), host_output.end(), [=](auto val) {return val < pivot; });
+            REQUIRE(is_partition);
             CHECK(std::is_permutation(input.begin(), input.end(), host_output.begin()));
         }
 
@@ -70,7 +73,7 @@ TEST_CASE("gpu partition - single chunk", "[algo] [sort] [fail]")
 
 }
 
-TEST_CASE("partition sort - 512 elements", "[algo] [sort]  [fail]")
+TEST_CASE("partition sort - 512 elements", "[algo] [sort]")
 {
     auto queue = boost::compute::system::default_queue();
     auto host_vec = generate_uniformly_distributed_vec(512, -135416.0f, 41230.0f);
