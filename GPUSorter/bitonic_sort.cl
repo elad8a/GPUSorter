@@ -79,7 +79,7 @@ __kernel void bitonic_sort_batched(__global data_t* input, idx_t single_batch_si
     
     idx_t batch_idx = get_group_id(0);
     idx_t local_idx = get_local_id(0);
-    idx_t total = single_batch_size * get_global_dim(0);
+    idx_t total = single_batch_size * get_num_groups(0);
     idx_t cache_access_base = local_idx * 2;
     idx_t global_access_base = batch_idx * single_batch_size + cache_access_base;
 
@@ -104,7 +104,7 @@ __kernel void bitonic_sort_batched(__global data_t* input, idx_t single_batch_si
     if (global_access_base < total)
     {    
         input[global_access_base] = cache[cache_access_base];
-        if ((global_access_base + 1) < input_size)
+        if ((global_access_base + 1) < total)
         {     
             input[global_access_base + 1] = cache[cache_access_base + 1];
         }  
