@@ -10,4 +10,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pch.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="partition.cl" />
+  </ItemGroup>
 </Project>

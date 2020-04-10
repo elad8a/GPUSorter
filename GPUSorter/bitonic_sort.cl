@@ -24,7 +24,7 @@ void bitonic_sort_local_mem(local data_t* cache, idx_t local_idx)
             data_t a = cache[pos];
             data_t b = cache[pos + merge_level];
 
-            bool flip = !((a < b) ^ dir_flip);
+            bool flip = !((a < b) ^ dir_flip); // makes more sense with a truth table
             if (flip)
             {                
                cache[pos] = b;

@@ -23,4 +23,6 @@
 #include <random>
 
 #include <boost/noncopyable.hpp>
+#define CL_TARGET_OPENCL_VERSION 200
+#define BOOST_COMPUTE_DEBUG_KERNEL_COMPILATION
 #include <boost/compute.hpp>

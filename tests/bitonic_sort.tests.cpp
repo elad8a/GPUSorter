@@ -1,31 +1,10 @@
 #include "pch.hpp"
 #include "catch.hpp"
-
+#include "tests.utils.hpp"
 inline const std::string BITONIC_SORT_KERNEL_STRING =
 #include "../GPUSorter/bitonic_sort.cl"
 "";
 
-template<typename T, typename SeedT = std::default_random_engine::result_type>
-auto generate_uniformly_distributed_vec(std::size_t count, T min, T max, SeedT seed = std::default_random_engine::default_seed)
-{
-    std::default_random_engine generator{ seed };
-    std::uniform_real_distribution<double> distribution(0.0, 1.0);
-
-    std::vector<T> vals(count);
-
-    double scale = max - min;
-
-
-    assert(scale > T{});
-    assert(scale > T{});
-
-    for (int i = 0; i < count; ++i)
-    {
-        vals[i] = min + static_cast<T>(scale * distribution(generator));
-    }
-
-    return vals;
-}
 
 namespace bc = boost::compute;
 
@@ -55,7 +34,6 @@ TEST_CASE("bitonic sort - 512 elements", "[algo] [sort]")
     REQUIRE(check);
 }
 
-
 TEST_CASE("bitonic sort - less then 512 elements", "[algo] [sort]")
 {
     auto queue = boost::compute::system::default_queue();
@@ -81,7 +59,6 @@ TEST_CASE("bitonic sort - less then 512 elements", "[algo] [sort]")
     auto check = std::is_sorted(result.begin(), result.end());
     REQUIRE(check);
 }
-
 
 TEST_CASE("batched bitonic sort - 512 elements", "[algo] [sort]")
 {
@@ -119,7 +96,7 @@ TEST_CASE("batched bitonic sort - 512 elements", "[algo] [sort]")
 
 }
 
-TEST_CASE("batched bitonic sort - less than 512 elements", "[algo] [sort] [fail]")
+TEST_CASE("batched bitonic sort - less than 512 elements", "[algo] [sort]")
 {
     auto single_batch_size = 123u;
     auto batch_count = 213u;

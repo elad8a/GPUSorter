@@ -102,6 +102,9 @@
       <FileType>Document</FileType>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="partition.cl" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

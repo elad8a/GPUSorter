@@ -4,8 +4,10 @@
     <ClCompile Include="tests.cpp" />
     <ClCompile Include="bitonic_sort.tests.cpp" />
     <ClCompile Include="pch.cpp" />
+    <ClCompile Include="partition.tests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.hpp" />
+    <ClInclude Include="tests.utils.hpp" />
   </ItemGroup>
 </Project>
