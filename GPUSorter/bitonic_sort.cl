@@ -33,6 +33,24 @@ void bitonic_sort_local_mem(local data_t* cache, idx_t local_idx)
             barrier(CLK_LOCAL_MEM_FENCE);      
          }
     }
+    
+    // bitonic merge
+    for (idx_t merge_level = MAX_BITONIC_WORK_SIZE; merge_level > 0; merge_level >>= 1)
+    {
+         idx_t merge_group = local_idx / merge_level;
+         idx_t idx_within_group = local_idx % merge_level;
+         idx_t pos = merge_group * merge_level * 2 + idx_within_group;
+         data_t a = cache[pos];
+         data_t b = cache[pos + merge_level];
+
+         if (a > b)
+         {
+            cache[pos] = b;
+            cache[pos + merge_level] = a;
+         }
+
+         barrier(CLK_LOCAL_MEM_FENCE);  
+    }
 }
 
 
@@ -97,14 +115,17 @@ __kernel void bitonic_sort_batched(__global data_t* input, idx_t single_batch_si
         cache[cache_access_base] = a;
         cache[cache_access_base + 1] = b;
     }
+
+    cache[cache_access_base] = cache_access_base;
+    cache[cache_access_base + 1] = cache_access_base + 1;
     barrier(CLK_LOCAL_MEM_FENCE);
     
-    bitonic_sort_local_mem(cache, local_idx);
+    //bitonic_sort_local_mem(cache, local_idx);
 
-    if (global_access_base < total)
+    if (cache_access_base < single_batch_size)
     {    
         input[global_access_base] = cache[cache_access_base];
-        if ((global_access_base + 1) < total)
+        if ((cache_access_base + 1) < single_batch_size)
         {     
             input[global_access_base + 1] = cache[cache_access_base + 1];
         }  
