@@ -39,11 +39,12 @@ TEST_CASE("gpu partition", "[algo] [partition]")
         partition_segment segment{};
         segment.global_start_idx = 0;
         segment.global_end_idx = static_cast<unsigned>(input.size());
-        segment.start_chunk_global_idx = 0;
+  
 
         partition_segment_result segment_result{};
         segment_result.smaller_than_pivot_upper = segment.global_start_idx;
         segment_result.greater_than_pivot_lower = segment.global_end_idx;
+        segment_result.chunks_count_per_segment = max_groups;
         bc::vector<partition_segment_result> device_result;
 
         bc::vector<data_t> src(input.begin(), input.end(), queue);
@@ -126,7 +127,7 @@ TEST_CASE("gpu partition - batched", "[algo] [partition]")
         {
             host_segments[i].global_start_idx = i * single_batch_size;
             host_segments[i].global_end_idx = (i + 1) * single_batch_size;
-            host_segments[i].start_chunk_global_idx = i * groups_per_batch;
+            //host_segments[i].start_chunk_global_idx = i * groups_per_batch;
         }
 
 
@@ -150,6 +151,8 @@ TEST_CASE("gpu partition - batched", "[algo] [partition]")
                 host_segments[i].pivot = pivot;
                 host_segments_results[i].smaller_than_pivot_upper = host_segments[i].global_start_idx;
                 host_segments_results[i].greater_than_pivot_lower = host_segments[i].global_end_idx;
+                host_segments_results[i].chunks_count_per_segment = groups_per_batch;
+
             }
 
             bc::copy(host_segments.begin(), host_segments.end(), segments.begin());

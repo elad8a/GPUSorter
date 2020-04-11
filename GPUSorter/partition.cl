@@ -14,7 +14,6 @@ typedef struct partition_segment
     data_t pivot;
     idx_t global_start_idx;
     idx_t global_end_idx;
-    idx_t start_chunk_global_idx;
 } partition_segment;
 
 // partition_segment_result 
@@ -29,7 +28,8 @@ typedef struct partition_segment_result
 {
     // data changed by kernels
     idx_t smaller_than_pivot_upper; // for allocation
-    idx_t greater_than_pivot_lower;    
+    idx_t greater_than_pivot_lower; 
+    idx_t chunks_count_per_segment;   
 } partition_segment_result;
 
 typedef struct partition_segment_chunk
@@ -46,7 +46,8 @@ void segment_partition(
     partition_segment_chunk chunk,
     global partition_segment_result* result,
     local idx_t* smaller_than_pivot_global_offset,
-    local idx_t* greater_than_pivot_global_offset
+    local idx_t* greater_than_pivot_global_offset,
+    local idx_t* last_group_counter
     )
 {
     const idx_t local_idx = get_local_id(0);
@@ -67,8 +68,12 @@ void segment_partition(
     idx_t smaller_than_pivot_exclusive_cumulative_count = work_group_scan_exclusive_add(smaller_than_pivot_private_count);
     idx_t greater_than_pivot_exclusive_cumulative_count = work_group_scan_exclusive_add(greater_than_pivot_private_count);
 
+    //volatile global idx_t* p_smaller_than_pivot_upper = &result->smaller_than_pivot_upper;
+    //volatile global idx_t* p_greater_than_pivot_lower = &result->greater_than_pivot_lower;
+
     if (local_idx == (group_size - 1)) 
     { 
+        last_group_counter = 999; // magic number, does not make a difference as long as it is not 1
         // last partition_work item has the total counts minus last element
         idx_t smaller_than_count = smaller_than_pivot_exclusive_cumulative_count + smaller_than_pivot_private_count;
         idx_t greater_than_count = greater_than_pivot_exclusive_cumulative_count + greater_than_pivot_private_count;
@@ -107,20 +112,37 @@ void segment_partition(
     }
 
     // wait for all threads to finish
-    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE); // necessary? yes, all threads need to finish partitioning?
 
-    const idx_t group_idx = get_group_id(0);
-    if (group_idx == segment.start_chunk_global_idx)
+    idx_t total_pivots = 0;
+    if (local_idx == 0)
     {
-        uint global_start_idx = result->smaller_than_pivot_upper;
-        uint global_end_idx = result->greater_than_pivot_lower;
+         last_group_counter = atomic_dec(&result->chunks_count_per_segment);
+    }  
 
+    barrier(CLK_LOCAL_MEM_FENCE /*| CLK_GLOBAL_MEM_FENCE*/); // necessary? yes, all threads need to finish partitioning?
+   
+    if (last_group_counter == 1) 
+    {
+        partition_segment_result current_result = *result; // explicitly read variable, if using dereferencing compiler may assume value has not changed
+        idx_t global_start_idx = current_result.smaller_than_pivot_upper;
+        idx_t global_end_idx = current_result.greater_than_pivot_lower;
+        //idx_t global_start_idx = *p_smaller_than_pivot_upper;
+        //idx_t global_end_idx = *p_greater_than_pivot_lower;
+        //global_start_idx = atomic_sub(
+        //    &result->greater_than_pivot_lower,
+        //    0
+        //    );
+        //global_end_idx = atomic_sub(
+        //    &result->greater_than_pivot_lower,
+        //    0
+        //    ); 
         int total_pivots = global_end_idx - global_start_idx;
         if (total_pivots > 0)
         {
             for (uint offset_idx = local_idx; offset_idx < total_pivots; offset_idx += group_size)
             {
-                dst[global_start_idx + offset_idx] = segment.pivot /*global_start_idx + offset_idx */ ;
+                //dst[global_start_idx + offset_idx] = 123;
+                dst[global_start_idx + offset_idx] = segment.pivot /*global_start_idx + offset_idx */;
             }  
         }
     }
@@ -135,6 +157,7 @@ __kernel void partition(
 {    
     local idx_t smaller_than_pivot_global_offset;
     local idx_t greater_than_pivot_global_offset;  
+    local idx_t last_group_counter;
 
     idx_t groups_count = get_num_groups(0);
     idx_t elements_per_group = (segment.global_end_idx - segment.global_start_idx) / groups_count;
@@ -151,7 +174,8 @@ __kernel void partition(
         chunk,
         result,
         &smaller_than_pivot_global_offset,
-        &greater_than_pivot_global_offset
+        &greater_than_pivot_global_offset,
+        &last_group_counter
         );
 
 }
@@ -169,6 +193,7 @@ __kernel void partition_batched(
 {    
     local idx_t smaller_than_pivot_global_offset;
     local idx_t greater_than_pivot_global_offset;
+    local idx_t last_group_counter;
 
     idx_t groups_count = get_num_groups(0);
     idx_t groups_per_batch = groups_count / batches_count; // assumes groups_count = K * batches_count where K is a positive integral
@@ -192,7 +217,8 @@ __kernel void partition_batched(
         chunk,
         results + batch_idx,
         &smaller_than_pivot_global_offset,
-        &greater_than_pivot_global_offset
+        &greater_than_pivot_global_offset,
+        &last_group_counter
         );
 
 }

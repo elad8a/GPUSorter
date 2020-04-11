@@ -6,7 +6,7 @@
 namespace bc = boost::compute;
 
 
-TEST_CASE("gpu partition million elements", "[algo] [partition]")
+TEST_CASE("gpu partition million elements", "[algo] [partition] [fail1]")
 {
     using data_t = float;
     auto queue = boost::compute::system::default_queue();
@@ -20,30 +20,32 @@ TEST_CASE("gpu partition million elements", "[algo] [partition]")
 
     auto min_val = 0.0f;
     auto max_val = 5000.0f;
-    auto local_size = 256u;
+    auto local_size = 2u;
+    auto input_size = 3000u;
 
+    std::vector<data_t> pivots{ 4000.0f, 500.0f, 1000.0f, 0.0f, 5000.0f };
 
-    std::vector<data_t> pivots{ 1000.0f, 500.0f, 4000.0f, 0.0f, 5000.0f };
-
-    std::vector<data_t> input1 = generate_uniformly_distributed_vec(100000, min_val, max_val);
-    std::vector<data_t> input2 = generate_uniformly_distributed_vec(100000, min_val, max_val);
-    std::vector<data_t> input3 = generate_uniformly_distributed_vec(100000, min_val, max_val);
+    std::vector<data_t> input1 = generate_uniformly_distributed_vec(input_size, min_val, max_val);
+    std::vector<data_t> input2 = generate_uniformly_distributed_vec(input_size, min_val, max_val);
+    std::vector<data_t> input3 = generate_uniformly_distributed_vec(input_size, min_val, max_val);
 
 
 
     auto checker = [&](std::vector<data_t>& input, unsigned groups_per_chunk)
     {
         auto max_groups = static_cast<unsigned>(input.size()) / local_size + ((input.size() % local_size) > 0);
-        auto global_size = (max_groups / groups_per_chunk) * local_size; // single chunk single work group
+        auto groups = max_groups / groups_per_chunk;
+        auto global_size = groups * local_size; // single chunk single work group
         std::vector<data_t> host_output(input.size());
         partition_segment segment{};
         segment.global_start_idx = 0;
         segment.global_end_idx = static_cast<unsigned>(input.size());
-        segment.start_chunk_global_idx = 0;
+
 
         partition_segment_result segment_result{};
         segment_result.smaller_than_pivot_upper = segment.global_start_idx;
         segment_result.greater_than_pivot_lower = segment.global_end_idx;
+        segment_result.chunks_count_per_segment = groups;
         bc::vector<partition_segment_result> device_result;
 
         bc::vector<data_t> src(input.begin(), input.end(), queue);
@@ -63,29 +65,41 @@ TEST_CASE("gpu partition million elements", "[algo] [partition]")
 
             bc::copy(dst.begin(), dst.end(), host_output.begin(), queue);
 
+            bc::copy(dst.begin(), dst.end(), host_output.begin(), queue);
 
+            auto is_partition = is_partitioned(host_output.begin(), host_output.end(), [=](auto val) {return val < pivot; });
+
+
+            auto greater_than_start_itr = std::partition(input.begin(), input.end(), [=](auto val) {return val < pivot; });
+            auto greater_than_start_idx = std::distance(input.begin(), greater_than_start_itr);
+
+            partition_segment_result result = device_result[0];
+
+            REQUIRE(is_partition);
+
+            REQUIRE(result.greater_than_pivot_lower == greater_than_start_idx);
         }
     };
 
     checker(input1, 1);
-    checker(input2, 1);
-    checker(input3, 1);
+    //checker(input2, 1);
+    //checker(input3, 1);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    //std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
-    checker(input1, 2);
-    checker(input2, 2);
-    checker(input3, 2);
+    //checker(input1, 2);
+    //checker(input2, 2);
+    //checker(input3, 2);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    //std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
-    checker(input1, 4);
-    checker(input2, 4);
-    checker(input3, 4);
+    //checker(input1, 4);
+    //checker(input2, 4);
+    //checker(input3, 4);
 }
 
 
-TEST_CASE("gpu partition - batched - 60 groups of 32K elements", "[algo] [partition] [fail]")
+TEST_CASE("gpu partition - batched - 60 groups of 32K elements", "[algo] [partition] [fail2]")
 {
     using data_t = float;
     auto queue = boost::compute::system::default_queue();
@@ -114,7 +128,7 @@ TEST_CASE("gpu partition - batched - 60 groups of 32K elements", "[algo] [partit
         {
             host_segments[i].global_start_idx = i * single_batch_size;
             host_segments[i].global_end_idx = (i + 1) * single_batch_size;
-            host_segments[i].start_chunk_global_idx = i * groups_per_batch;
+            //host_segments[i].start_chunk_global_idx = i * groups_per_batch;
         }
 
 
@@ -138,6 +152,7 @@ TEST_CASE("gpu partition - batched - 60 groups of 32K elements", "[algo] [partit
                 host_segments[i].pivot = pivot;
                 host_segments_results[i].smaller_than_pivot_upper = host_segments[i].global_start_idx;
                 host_segments_results[i].greater_than_pivot_lower = host_segments[i].global_end_idx;
+                host_segments_results[i].chunks_count_per_segment = groups_per_batch;
             }
 
             bc::copy(host_segments.begin(), host_segments.end(), segments.begin());

@@ -19,7 +19,6 @@ typedef struct partition_segment
     data_t pivot;
     idx_t global_start_idx;
     idx_t global_end_idx;
-    idx_t start_chunk_global_idx;
 } partition_segment;
 
 typedef struct partition_segment_result
@@ -27,4 +26,5 @@ typedef struct partition_segment_result
     // data changed by kernels
     idx_t smaller_than_pivot_upper; // for allocation
     idx_t greater_than_pivot_lower;
+    idx_t chunks_count_per_segment; // used internally by kernel
 } partition_segment_result;
