@@ -126,8 +126,6 @@ void segment_partition(
     }
 }
 
-
-
 __kernel void partition(    
     global data_t* src, 
     global data_t* dst,
@@ -138,9 +136,13 @@ __kernel void partition(
     local idx_t smaller_than_pivot_global_offset;
     local idx_t greater_than_pivot_global_offset;  
 
+    idx_t groups_count = get_num_groups(0);
+    idx_t elements_per_group = (segment.global_end_idx - segment.global_start_idx) / groups_count;
+    idx_t group_idx = get_group_id(0);
+
     partition_segment_chunk chunk;
-    chunk.start = segment.global_start_idx; // inclusive, global start of the partition chunk
-    chunk.end = segment.global_end_idx; // exclusive, TODO: use multiple smaller chunks
+    chunk.start = elements_per_group * group_idx; // inclusive, global start of the partition chunk
+    chunk.end = (group_idx == (groups_count - 1)) ? segment.global_end_idx : elements_per_group * (group_idx + 1); // exclusive, TODO: use multiple smaller chunks
 
     segment_partition(
         src,
