@@ -159,7 +159,7 @@ __kernel void partition(
 __kernel void partition_batched(    
     global data_t* src, 
     global data_t* dst,
-    global partition_segment* segments, // TODO constant mem
+    __constant partition_segment* segments, 
     global partition_segment_result* results,
     idx_t single_batch_size,
     idx_t batches_count
