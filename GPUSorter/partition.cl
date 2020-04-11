@@ -142,13 +142,13 @@ __kernel void partition(
 
     partition_segment_chunk chunk;
     chunk.start = elements_per_group * group_idx; // inclusive, global start of the partition chunk
-    chunk.end = (group_idx == (groups_count - 1)) ? segment.global_end_idx : elements_per_group * (group_idx + 1); // exclusive, TODO: use multiple smaller chunks
+    chunk.end = (group_idx == (groups_count - 1)) ? segment.global_end_idx : elements_per_group * (group_idx + 1);
 
     segment_partition(
         src,
         dst,
         segment,
-        chunk, // TODO: use smaller chunks
+        chunk,
         result,
         &smaller_than_pivot_global_offset,
         &greater_than_pivot_global_offset
@@ -173,24 +173,22 @@ __kernel void partition_batched(
     idx_t groups_count = get_num_groups(0);
     idx_t groups_per_batch = groups_count / batches_count; // assumes groups_count = K * batches_count where K is a positive integral
     idx_t elements_per_group = single_batch_size / groups_per_batch;
-    idx_t elements_per_group_remainder = single_batch_size % groups_per_batch;
 
     const idx_t batch_idx = get_group_id(0) / groups_per_batch;
     const idx_t idx_within_batch = get_group_id(0) % groups_per_batch;
 
+    partition_segment segment = segments[batch_idx];
+
 
     partition_segment_chunk chunk;
     chunk.start = batch_idx * single_batch_size + idx_within_batch * elements_per_group; // inclusive, global start of the partition chunk
-    chunk.end = chunk.start + elements_per_group; // exclusive
-    if ((idx_within_batch + 1) == groups_per_batch)
-    {
-        chunk.end += elements_per_group_remainder;
-    }
+    chunk.end = ((idx_within_batch + 1) == groups_per_batch) ? segment.global_end_idx : chunk.start + elements_per_group; // exclusive
+
     
     segment_partition(
         src,
         dst,
-        segments[batch_idx],
+        segment,
         chunk,
         results + batch_idx,
         &smaller_than_pivot_global_offset,
