@@ -65,7 +65,15 @@ TEST_CASE("gpu partition", "[algo] [partition]")
                 CHECK(!is_partitioned(input.begin(), input.end(), [=](auto val) {return val < pivot; }));
             }
             auto is_partition = is_partitioned(host_output.begin(), host_output.end(), [=](auto val) {return val < pivot; });
+
+
             REQUIRE(is_partition);
+
+            auto greater_than_start_itr = std::partition(input.begin(), input.end(), [=](auto val) {return val < pivot; });
+            auto greater_than_start_idx = std::distance(input.begin(), greater_than_start_itr);
+
+            partition_segment_result result = device_result[0];
+            REQUIRE(result.greater_than_pivot_lower == greater_than_start_idx);
             //CHECK(std::is_permutation(input.begin(), input.end(), host_output.begin()));
         }
     };
@@ -148,11 +156,23 @@ TEST_CASE("gpu partition - batched", "[algo] [partition]")
 
             bc::copy(dst.begin(), dst.end(), host_output.begin(), queue);
      
+            auto input_copy = input;
+
             for (auto i = 0u; i < batches_count; ++i)
             {
                 auto is_partition = is_partitioned(host_output.begin() + i * single_batch_size, host_output.begin() + (i + 1) * single_batch_size, [=](auto val) {return val < pivot; });
                 REQUIRE(is_partition);
+
+                auto beg = input_copy.begin() + i * single_batch_size;
+                auto end = input_copy.begin() + (i + 1) * single_batch_size;
+                auto greater_than_start_itr = std::partition(beg, end, [=](auto val) {return val < pivot; });
+                auto greater_than_start_idx = std::distance(input_copy.begin(), greater_than_start_itr);
+
+                partition_segment_result result = results[i];
+                REQUIRE(result.greater_than_pivot_lower == greater_than_start_idx);
             }
+
+
         }
     };
 
