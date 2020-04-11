@@ -119,24 +119,13 @@ void segment_partition(
          last_group_counter = atomic_dec(&result->chunks_count_per_segment);
     }  
 
-    barrier(CLK_LOCAL_MEM_FENCE /*| CLK_GLOBAL_MEM_FENCE*/); // necessary? yes, all threads need to finish partitioning?
+    barrier(CLK_LOCAL_MEM_FENCE);
    
     if (last_group_counter == 1) 
     {
-        partition_segment_result current_result = *result; // explicitly read variable, if using dereferencing compiler may assume value has not changed
+        partition_segment_result current_result = *result;
         idx_t global_start_idx = current_result.smaller_than_pivot_upper;
-        idx_t global_end_idx = current_result.greater_than_pivot_lower;
-        //idx_t global_start_idx = *p_smaller_than_pivot_upper;
-        //idx_t global_end_idx = *p_greater_than_pivot_lower;
-        //global_start_idx = atomic_sub(
-        //    &result->greater_than_pivot_lower,
-        //    0
-        //    );
-        //global_end_idx = atomic_sub(
-        //    &result->greater_than_pivot_lower,
-        //    0
-        //    ); 
-        int total_pivots = global_end_idx - global_start_idx;
+        int total_pivots = current_result.greater_than_pivot_lower - global_start_idx;
         if (total_pivots > 0)
         {
             for (uint offset_idx = local_idx; offset_idx < total_pivots; offset_idx += group_size)

@@ -6,7 +6,7 @@
 namespace bc = boost::compute;
 
 
-TEST_CASE("gpu partition million elements", "[algo] [partition] [fail1]")
+TEST_CASE("gpu partition million elements", "[algo] [partition]")
 {
     using data_t = float;
     auto queue = boost::compute::system::default_queue();
@@ -20,8 +20,8 @@ TEST_CASE("gpu partition million elements", "[algo] [partition] [fail1]")
 
     auto min_val = 0.0f;
     auto max_val = 5000.0f;
-    auto local_size = 2u;
-    auto input_size = 3000u;
+    auto local_size = 256u;
+    auto input_size = 2000000u;
 
     std::vector<data_t> pivots{ 4000.0f, 500.0f, 1000.0f, 0.0f, 5000.0f };
 
@@ -82,24 +82,24 @@ TEST_CASE("gpu partition million elements", "[algo] [partition] [fail1]")
     };
 
     checker(input1, 1);
-    //checker(input2, 1);
-    //checker(input3, 1);
+    checker(input2, 1);
+    checker(input3, 1);
 
-    //std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
-    //checker(input1, 2);
-    //checker(input2, 2);
-    //checker(input3, 2);
+    checker(input1, 2);
+    checker(input2, 2);
+    checker(input3, 2);
 
-    //std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
-    //checker(input1, 4);
-    //checker(input2, 4);
-    //checker(input3, 4);
+    checker(input1, 4);
+    checker(input2, 4);
+    checker(input3, 4);
 }
 
 
-TEST_CASE("gpu partition - batched - 60 groups of 32K elements", "[algo] [partition] [fail2]")
+TEST_CASE("gpu partition - batched - 60 groups of 32K elements", "[algo] [partition]")
 {
     using data_t = float;
     auto queue = boost::compute::system::default_queue();
@@ -115,7 +115,7 @@ TEST_CASE("gpu partition - batched - 60 groups of 32K elements", "[algo] [partit
     auto max_val = 5000.0f;
     constexpr unsigned local_size = 256u;
 
-    std::vector<data_t> pivots{ 1000.0f/*, 500.0f, 4000.0f, 0.0f, 5000.0f*/ };
+    std::vector<data_t> pivots{ 1000.0f, 500.0f, 4000.0f, 0.0f, 5000.0f };
 
 
     auto checker = [&](unsigned single_batch_size, unsigned batches_count, unsigned groups_per_batch)
@@ -177,14 +177,8 @@ TEST_CASE("gpu partition - batched - 60 groups of 32K elements", "[algo] [partit
 
                 REQUIRE(is_partition);
                 REQUIRE(result.greater_than_pivot_lower == greater_than_start_idx);
-
-
-         
-
-
+            
             }
-
-
         }
     };
 
@@ -194,9 +188,9 @@ TEST_CASE("gpu partition - batched - 60 groups of 32K elements", "[algo] [partit
 
     checker(single_batch_size, batches_count, max_groups_per_batch);
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    //checker(single_batch_size, batches_count, max_groups_per_batch / 2);
+    checker(single_batch_size, batches_count, max_groups_per_batch / 2);
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    //checker(single_batch_size, batches_count, max_groups_per_batch / 4);
+    checker(single_batch_size, batches_count, max_groups_per_batch / 4);
 
 }
 
