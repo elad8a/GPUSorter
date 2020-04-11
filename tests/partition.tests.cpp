@@ -1,19 +1,12 @@
 #include "pch.hpp"
 #include "catch.hpp"
 #include "tests.utils.hpp"
-inline const std::string PARTITION_KERNEL_STRING =
-#include "../GPUSorter/partition.cl"
-"";
+#include "sorting_kernels.hpp"
 
 namespace bc = boost::compute;
-typedef struct parent_segment
-{
-    unsigned current_smaller_than_pivot_start_idx; // for allocation
-    unsigned current_greater_than_pivot_end_idx;
-    unsigned start_segment_global_idx;
-} parent_segment;
 
-TEST_CASE("gpu partition", "[algo] [sort]")
+
+TEST_CASE("gpu partition", "[algo] [partition]")
 {
     using data_t = float;
     auto queue = boost::compute::system::default_queue();
@@ -41,14 +34,14 @@ TEST_CASE("gpu partition", "[algo] [sort]")
     auto checker = [&](std::vector<data_t>& input)
     {
         std::vector<data_t> host_output(input.size());
-        parent_segment host_parent{};
+        partition_segment host_parent{};
         host_parent.current_smaller_than_pivot_start_idx = 0;
         host_parent.current_greater_than_pivot_end_idx = static_cast<unsigned>(input.size());
         host_parent.start_segment_global_idx = 0;
 
         bc::vector<data_t> src(input.begin(), input.end(), queue);
         bc::vector<data_t> dst(host_output.begin(), host_output.end(), queue);
-        bc::vector<parent_segment> parents(1, queue.get_context());
+        bc::vector<partition_segment> parents(1, queue.get_context());
 
 
         partition_kernel.set_arg(0, src);
@@ -92,7 +85,7 @@ TEST_CASE("gpu partition", "[algo] [sort]")
 }
 
 
-TEST_CASE("gpu partition - batched", "[algo] [sort] [fail]")
+TEST_CASE("gpu partition - batched", "[algo] [partition]")
 {
     using data_t = float;
     auto queue = boost::compute::system::default_queue();
@@ -115,7 +108,7 @@ TEST_CASE("gpu partition - batched", "[algo] [sort] [fail]")
     {    
         std::vector<data_t> input = generate_uniformly_distributed_vec(single_batch_size * batches_count, min_val, max_val);
         std::vector<data_t> host_output(input.size());
-        std::vector<parent_segment> host_parents(batches_count);
+        std::vector<partition_segment> host_parents(batches_count);
         for (auto i = 0u; i < batches_count; ++i)
         {
             host_parents[i].current_smaller_than_pivot_start_idx = i * single_batch_size;
@@ -126,7 +119,7 @@ TEST_CASE("gpu partition - batched", "[algo] [sort] [fail]")
 
         bc::vector<data_t> src(input.begin(), input.end(), queue);
         bc::vector<data_t> dst(host_output.begin(), host_output.end(), queue);
-        bc::vector<parent_segment> parents(1, queue.get_context());
+        bc::vector<partition_segment> parents(1, queue.get_context());
 
 
         partition_kernel.set_arg(0, src);
@@ -179,3 +172,5 @@ TEST_CASE("gpu partition - batched", "[algo] [sort] [fail]")
         checker(local_size * 6, 1, 3);
     }
 }
+
+

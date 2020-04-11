@@ -1,72 +1,28 @@
 R""(
+
 typedef float data_t;
 typedef uint idx_t;
 
-#define QUICKSORT_CHUNK_MIN_SIZE        1 // FOR now, keep partitioning until done 
-#define EMPTY_RECORD                   42
-#define GQSORT_LOCAL_WORKGROUP_SIZE   256
-#define LQSORT_LOCAL_WORKGROUP_SIZE   256
-
-data_t median(data_t x1, data_t x2, data_t x3) 
-{
-    if (x1 < x2) 
-    {
-        if (x2 < x3) 
-        {
-            return x2;
-        }
-        else 
-        {
-            if (x1 < x3) 
-            {
-                return x3;
-            }
-            else 
-            {
-                return x1;
-            }
-        }
-    }
-    else 
-    { // x1 >= x2
-        if (x1 < x3) 
-        {
-            return x1;
-        }
-        else 
-        { // x1 >= x3
-            if (x2 < x3) 
-            {
-                return x2;
-            }
-            else 
-            {
-                return x3;
-            }
-        }
-    }
-}
-
-typedef struct parent_segment
+typedef struct partition_segment
 {
     idx_t current_smaller_than_pivot_start_idx; // for allocation
     idx_t current_greater_than_pivot_end_idx; 
     idx_t start_segment_global_idx;
-} parent_segment;
+} partition_segment;
 
-typedef struct partition_segment
+typedef struct partition_segment_chunk
 {
-    idx_t start; // inclusive, global start of the partition segment
+    idx_t start; // inclusive, global start of the partition chunk
     idx_t end; // exclusive
     idx_t pivot;
     idx_t parent_segment_idx;
-} partition_segment;
+} partition_segment_chunk;
 
 void segment_partition(
     global data_t* src, 
     global data_t* dst,
-    partition_segment segment,
-    global parent_segment* parent_segments,
+    partition_segment_chunk chunk,
+    global partition_segment* parent_segments,
     local idx_t* smaller_than_pivot_global_offset,
     local idx_t* greater_than_pivot_global_offset
     )
@@ -81,17 +37,17 @@ void segment_partition(
 
 
     // stage 1: allocation phase
-    for (idx_t i = segment.start + local_idx; i < segment.end; i += group_size)
+    for (idx_t i = chunk.start + local_idx; i < chunk.end; i += group_size)
     {
         data_t val = src[i];
-        smaller_than_pivot_private_count += (val < segment.pivot);
-        greater_than_pivot_private_count += (val > segment.pivot);
+        smaller_than_pivot_private_count += (val < chunk.pivot);
+        greater_than_pivot_private_count += (val > chunk.pivot);
     }
 
     idx_t smaller_than_pivot_exclusive_cumulative_count = work_group_scan_exclusive_add(smaller_than_pivot_private_count);
     idx_t greater_than_pivot_exclusive_cumulative_count = work_group_scan_exclusive_add(greater_than_pivot_private_count);
 
-    global parent_segment* parent =  parent_segments + segment.parent_segment_idx;
+    global partition_segment* parent =  parent_segments + chunk.parent_segment_idx;
     
     if (local_idx == (group_size - 1)) 
     { 
@@ -118,15 +74,15 @@ void segment_partition(
     idx_t greater_private_begin_global_idx = *greater_than_pivot_global_offset + greater_than_pivot_exclusive_cumulative_count;
 
     // go through data again writing elements to their correct position
-    for (idx_t i = segment.start + local_idx; i < segment.end; i += group_size)
+    for (idx_t i = chunk.start + local_idx; i < chunk.end; i += group_size)
     {
         data_t val = src[i];
         // increment counts
-        if (val < segment.pivot)
+        if (val < chunk.pivot)
         {
             dst[smaller_private_begin_global_idx++] = val;
         }
-        else if (val > segment.pivot)
+        else if (val > chunk.pivot)
         {
             dst[greater_private_begin_global_idx++] = val;
         }
@@ -146,7 +102,7 @@ void segment_partition(
         {
             for (uint offset_idx = local_idx; offset_idx < total_pivots; offset_idx += group_size)
             {
-                dst[global_start_idx + offset_idx] = segment.pivot /*global_start_idx + offset_idx */ ;
+                dst[global_start_idx + offset_idx] = chunk.pivot /*global_start_idx + offset_idx */ ;
             }  
         }
     }
@@ -157,7 +113,7 @@ void segment_partition(
 __kernel void partition(    
     global data_t* src, 
     global data_t* dst,
-    global parent_segment* parent,
+    global partition_segment* parent,
     idx_t count,
     data_t pivot
     )
@@ -165,16 +121,16 @@ __kernel void partition(
     local idx_t smaller_than_pivot_global_offset;
     local idx_t greater_than_pivot_global_offset;
 
-    partition_segment segment;
-    segment.start = 0; // inclusive, global start of the partition segment
-    segment.end = count; // exclusive
-    segment.pivot = pivot;
-    segment.parent_segment_idx = 0;
+    partition_segment_chunk chunk;
+    chunk.start = 0; // inclusive, global start of the partition chunk
+    chunk.end = count; // exclusive
+    chunk.pivot = pivot;
+    chunk.parent_segment_idx = 0;
 
     segment_partition(
         src,
         dst,
-        segment,
+        chunk,
         parent,
         &smaller_than_pivot_global_offset,
         &greater_than_pivot_global_offset
@@ -187,7 +143,7 @@ __kernel void partition(
 __kernel void partition_batched(    
     global data_t* src, 
     global data_t* dst,
-    global parent_segment* parents,
+    global partition_segment* parents,
     idx_t single_batch_size,
     idx_t batches_count,
     data_t pivot
@@ -205,21 +161,21 @@ __kernel void partition_batched(
     const idx_t idx_within_batch = get_group_id(0) % groups_per_batch;
 
 
-    partition_segment segment;
-    segment.start = batch_idx * single_batch_size + idx_within_batch * elements_per_group; // inclusive, global start of the partition segment
-    segment.end = segment.start + elements_per_group; // exclusive
+    partition_segment_chunk chunk;
+    chunk.start = batch_idx * single_batch_size + idx_within_batch * elements_per_group; // inclusive, global start of the partition chunk
+    chunk.end = chunk.start + elements_per_group; // exclusive
     if ((idx_within_batch + 1) == groups_per_batch)
     {
-        segment.end += elements_per_group_remainder;
+        chunk.end += elements_per_group_remainder;
     }
     
-    segment.pivot = pivot;
-    segment.parent_segment_idx = batch_idx;
+    chunk.pivot = pivot;
+    chunk.parent_segment_idx = batch_idx;
 
     segment_partition(
         src,
         dst,
-        segment,
+        chunk,
         parents,
         &smaller_than_pivot_global_offset,
         &greater_than_pivot_global_offset

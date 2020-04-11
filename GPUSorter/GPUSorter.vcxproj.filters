@@ -12,5 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="partition.cl" />
+    <None Include="qsort.cl" />
   </ItemGroup>
 </Project>

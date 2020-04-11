@@ -1,10 +1,7 @@
 #include "pch.hpp"
 #include "catch.hpp"
 #include "tests.utils.hpp"
-inline const std::string BITONIC_SORT_KERNEL_STRING =
-#include "../GPUSorter/bitonic_sort.cl"
-"";
-
+#include "sorting_kernels.hpp"
 
 namespace bc = boost::compute;
 

@@ -2,12 +2,27 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="tests.cpp" />
-    <ClCompile Include="bitonic_sort.tests.cpp" />
     <ClCompile Include="pch.cpp" />
-    <ClCompile Include="partition.tests.cpp" />
+    <ClCompile Include="bitonic_sort.tests.cpp">
+      <Filter>sort</Filter>
+    </ClCompile>
+    <ClCompile Include="partition.tests.cpp">
+      <Filter>sort</Filter>
+    </ClCompile>
+    <ClCompile Include="qsort.tests.cpp">
+      <Filter>sort</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.hpp" />
     <ClInclude Include="tests.utils.hpp" />
+    <ClInclude Include="sorting_kernels.hpp">
+      <Filter>sort</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="sort">
+      <UniqueIdentifier>{388ec71c-721e-491c-8f7d-b7181c0b8619}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>
