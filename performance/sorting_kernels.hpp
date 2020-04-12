@@ -3,7 +3,7 @@ inline const std::string PARTITION_KERNEL_STRING =
 #include "../GPUSorter/partition.cl"
 "";
 inline const std::string QSORT_KERNEL_STRING =
-#include "../GPUSorter/qsort.cl"
+#include "../GPUSorter/sort.cl"
 "";
 
 inline const std::string BITONIC_SORT_KERNEL_STRING =

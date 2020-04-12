@@ -3,7 +3,9 @@
   <ItemGroup>
     <ClInclude Include="GPUFloatSorter.hpp" />
     <ClInclude Include="pch.hpp" />
-    <ClInclude Include="bitonic_sort.cl" />
+    <ClInclude Include="bitonic_sort.cl">
+      <Filter>kernels</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GPUFloatSorter.cpp" />
@@ -11,7 +13,16 @@
     <ClCompile Include="pch.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="partition.cl" />
-    <None Include="qsort.cl" />
+    <None Include="partition.cl">
+      <Filter>kernels</Filter>
+    </None>
+    <None Include="sort.cl">
+      <Filter>kernels</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="kernels">
+      <UniqueIdentifier>{7e669c62-b388-4c17-97fa-acfe17c6e252}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>
