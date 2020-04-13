@@ -65,8 +65,8 @@ void segment_partition(
         greater_than_pivot_private_count += (val > segment.pivot);
     }
 
-    idx_t packed = (greater_than_pivot_private_count << 16) | smaller_than_pivot_private_count;
-    idx_t cumulative_packed = work_group_scan_exclusive_add(packed);
+    idx_t packed = (greater_than_pivot_private_count << 16) | smaller_than_pivot_private_count; // a genius move no less
+    idx_t cumulative_packed = work_group_scan_exclusive_add(packed); 
     idx_t smaller_than_pivot_exclusive_cumulative_count = cumulative_packed & 0x0000FFFF;
     idx_t greater_than_pivot_exclusive_cumulative_count = cumulative_packed >> 16;
     //idx_t smaller_than_pivot_exclusive_cumulative_count = work_group_scan_exclusive_add(smaller_than_pivot_private_count);
