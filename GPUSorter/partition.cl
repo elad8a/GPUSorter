@@ -36,7 +36,7 @@ typedef struct partition_segment_chunk
 {
     idx_t start; // inclusive, global start of the partition chunk
     idx_t end; // exclusive
-    //idx_t parent_segment_idx; // no need
+    //idx_t parent_segment_idx; // no need?
 } partition_segment_chunk;
 
 void segment_partition(
