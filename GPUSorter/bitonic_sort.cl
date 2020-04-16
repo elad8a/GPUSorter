@@ -1,7 +1,10 @@
 R""(
 
+#ifndef TARGET_TYPES
+#define TARGET_TYPES
 typedef float data_t;
 typedef uint idx_t;
+#endif
 
 #define MAX_GROUP_SIZE 256
 #define CACHE_SIZE (MAX_GROUP_SIZE * 2)

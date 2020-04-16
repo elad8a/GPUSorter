@@ -1,9 +1,11 @@
 R""(
 //#include "partition.cl"
 
+#ifndef TARGET_TYPES
+#define TARGET_TYPES
 typedef float data_t;
 typedef uint idx_t;
-
+#endif
 data_t median3(data_t x1, data_t x2, data_t x3) 
 {
     return min(max(x1, x2), x3);

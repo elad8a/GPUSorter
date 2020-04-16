@@ -1,8 +1,9 @@
 R""(
-
+#ifndef TARGET_TYPES
+#define TARGET_TYPES
 typedef float data_t;
 typedef uint idx_t;
-
+#endif
 
 // a partion segment represent a single partition
 // performed on a segment of the data array
