@@ -39,17 +39,18 @@ kernel void sort(
     idx_t segments_count
     )
 {
+    idx_t local_idx = get_local_id(0);
     idx_t group_idx = get_group_id(0);
     partition_segment_chunk_ex chunk_ex = chunks[group_idx];
     partition_segment segment = segments[chunk_ex.segment_idx];
-    partition_segment_result* result = results + chunk_ex.segment_idx;
+    global partition_segment_result* result = results + chunk_ex.segment_idx;
 
     local idx_t smaller_than_pivot_global_offset;
     local idx_t greater_than_pivot_global_offset;  
     local idx_t last_group_counter;
 
     local idx_t chunks_allocate_idx;
-    local idx_t bitonic_chunks_allocate_idx;
+    local idx_t bitonic_segments_allocate_idx;
     local idx_t segments_allocate_idx;
     if (local_idx == 0)
     {
@@ -76,23 +77,24 @@ kernel void sort(
 
     if (last_group_counter == 1)
     {
+        idx_t group_size = get_local_size(0);
         for (idx_t i = local_idx; i < segments_count; i+= group_size)
         {   
-            partition_segment segment = segments[i],
-            partition_segment_result current_result = result[i];
+            partition_segment segment = segments[i];
+            partition_segment_result current_result = results[i];
 
 
             // left segment calc
             partition_segment left_segment;
             left_segment.global_start_idx = segment.global_start_idx;
-            left_segment.global_end_idx = result.smaller_than_pivot_upper; // +1 ? 
+            left_segment.global_end_idx = current_result.smaller_than_pivot_upper; // +1 ? 
             
             // right segment calc
             partition_segment right_segment;
-            right_segment.global_start_idx = result.greater_than_pivot_lower;
+            right_segment.global_start_idx = current_result.greater_than_pivot_lower;
             right_segment.global_end_idx = segment.global_end_idx;
             
-            idx_t total_left = result.smaller_than_pivot_upper - segment.global_start_idx; 
+            idx_t total_left = current_result.smaller_than_pivot_upper - segment.global_start_idx; 
             idx_t total_right = right_segment.global_end_idx - right_segment.global_start_idx; 
 
             // allocate space for segments
@@ -123,21 +125,13 @@ kernel void sort(
                 }
                 ++segment_base_idx;
             }
-            dst_segments[i*2] = left_segment;
-            dst_segments[i*2 + 1] = right_segment;
-
-            if (total_left > 512)
-            {                
-                idx_t chunks_count = total_left / (256 * 4);
-                // allocate and compute chunks                
-            }
             else if (total_left > 0)
             {
                 // bitonic sort this segment inplace, or to a different buffer if needed
-                idx_t bitonic_idx = atomic_inc(bitonic_segments_allocate_idx);
+                idx_t bitonic_idx = atomic_inc(&bitonic_segments_allocate_idx);
                 bitonic_segment left_segment;
                 left_segment.global_start_idx = segment.global_start_idx;
-                left_segment.global_end_idx = result.smaller_than_pivot_upper; // +1 ?    
+                left_segment.global_end_idx = current_result.smaller_than_pivot_upper; // +1 ?    
             }
         }
 
@@ -148,12 +142,12 @@ kernel void sort(
             {
                 // dispatch this kernel again using double amount of segments
                 queue_t q = get_default_queue();
-                enqueue_kernel(
-                    q,
-                    CLK_ENQUEUE_FLAGS_WAIT_KERNEL,
-                    ndrange_1D(1),
-                    ^{ relauncher_kernel(d, dn, blocks, parents, result, work, done, done_size, MAXSEQ, num_workgroups); }
-                ); 
+                //enqueue_kernel(
+                //    q,
+                //    CLK_ENQUEUE_FLAGS_WAIT_KERNEL,
+                //    ndrange_1D(1),
+                //    ^{ relauncher_kernel(d, dn, blocks, parents, result, work, done, done_size, MAXSEQ, num_workgroups); }
+                //); 
             }
 
             if (bitonic_segments_allocate_idx > 0)

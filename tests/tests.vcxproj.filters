@@ -9,7 +9,7 @@
     <ClCompile Include="partition.tests.cpp">
       <Filter>sort</Filter>
     </ClCompile>
-    <ClCompile Include="qsort.tests.cpp">
+    <ClCompile Include="sort.tests.cpp">
       <Filter>sort</Filter>
     </ClCompile>
   </ItemGroup>
