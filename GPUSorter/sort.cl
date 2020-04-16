@@ -121,7 +121,7 @@ kernel void sort(
             {   
                 dst_segments[segment_base_idx] = left_segment;
                 
-                idx_t chunks_end = chunks_base_idx + chunks_count_left;
+
                 for (idx_t i = 0; i < chunks_count_left; ++i)
                 {
                     partition_segment_chunk_ex new_chunk;
@@ -142,6 +142,30 @@ kernel void sort(
                 left_segment.global_start_idx = segment.global_start_idx;
                 left_segment.global_end_idx = current_result.smaller_than_pivot_upper; // +1 ?    
                 bitonic_segments[bitonic_idx] = left_segment;
+            }
+
+            if (total_right > ALTERNATIVE_SORT_THRESHOLD)
+            {   
+                dst_segments[segment_base_idx] = right_segment;
+                
+                for (idx_t i = 0; i < chunks_count_right; ++i)
+                {
+                    partition_segment_chunk_ex new_chunk;
+                    new_chunk.segment_idx = segment_base_idx;
+                    new_chunk.chunk.start = right_segment.global_start_idx + i * PARTITION_ELEMENTS_PER_WORKGROUP;
+                    new_chunk.chunk.end = ((i+1) == chunks_count_left) ? right_segment.global_end_idx : new_chunk.chunk.start + PARTITION_ELEMENTS_PER_WORKGROUP;
+                    chunks[chunks_base_idx + i] = new_chunk;
+                    
+                }
+            }
+            else if (total_left > 0)
+            {
+                // bitonic sort this segment inplace, or to a different buffer if needed
+                idx_t bitonic_idx = atomic_inc(&bitonic_segments_allocate_idx);
+                bitonic_segment right_segment;
+                right_segment.global_start_idx = segment.global_start_idx;
+                right_segment.global_end_idx = current_result.smaller_than_pivot_upper; // +1 ?    
+                bitonic_segments[bitonic_idx] = right_segment;
             }
         }
 
