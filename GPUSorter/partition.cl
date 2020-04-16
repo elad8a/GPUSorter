@@ -77,7 +77,7 @@ void segment_partition(
 
     if (local_idx == (group_size - 1)) 
     { 
-        last_group_counter = 999; // magic number, does not make a difference as long as it is not 1
+        *last_group_counter = 999; // magic number, does not make a difference as long as it is not 1
         // last partition_work item has the total counts minus last element
         idx_t smaller_than_count = smaller_than_pivot_exclusive_cumulative_count + smaller_than_pivot_private_count;
         idx_t greater_than_count = greater_than_pivot_exclusive_cumulative_count + greater_than_pivot_private_count;
@@ -120,12 +120,12 @@ void segment_partition(
     idx_t total_pivots = 0;
     if (local_idx == 0)
     {
-         last_group_counter = atomic_dec(&result->chunks_count_per_segment);
+         *last_group_counter = atomic_dec(&result->chunks_count_per_segment);
     }  
 
     barrier(CLK_LOCAL_MEM_FENCE);
    
-    if (last_group_counter == 1) 
+    if (*last_group_counter == 1) 
     {
         partition_segment_result current_result = *result;
         idx_t global_start_idx = current_result.smaller_than_pivot_upper;
