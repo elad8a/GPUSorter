@@ -38,7 +38,9 @@ kernel void sort(
     global partition_segment* dst_segments,
     global partition_segment_result* dst_results,
     global bitonic_segment* bitonic_segments,
+    idx_t bitonic_segments_count,
     idx_t segments_count
+    
     )
 {
     idx_t local_idx = get_local_id(0);
@@ -57,7 +59,7 @@ kernel void sort(
     if (local_idx == 0)
     {
         chunks_allocate_idx = 0;
-        bitonic_segments_allocate_idx = 0;
+        bitonic_segments_allocate_idx = bitonic_segments_count;
         segments_allocate_idx = 0;
         // no need for a barrier, there will be plenty before these are used
     }
@@ -126,8 +128,6 @@ kernel void sort(
                     new_chunk.segment_idx = segment_base_idx;
                     new_chunk.chunk.start = left_segment.global_start_idx + i * PARTITION_ELEMENTS_PER_WORKGROUP;
                     new_chunk.chunk.end = ((i+1) == chunks_count_left) ? left_segment.global_end_idx : new_chunk.chunk.start + PARTITION_ELEMENTS_PER_WORKGROUP;
-                    //chunk.start = batch_idx * single_batch_size + idx_within_batch * elements_per_group; // inclusive, global start of the partition chunk
-                    //chunk.end = ((idx_within_batch + 1) == groups_per_batch) ? segment.global_end_idx : chunk.start + elements_per_group; // exclusive
                     chunks[chunks_base_idx + i] = new_chunk;
                     
                 }
@@ -141,6 +141,7 @@ kernel void sort(
                 bitonic_segment left_segment;
                 left_segment.global_start_idx = segment.global_start_idx;
                 left_segment.global_end_idx = current_result.smaller_than_pivot_upper; // +1 ?    
+                bitonic_segments[bitonic_idx] = left_segment;
             }
         }
 
