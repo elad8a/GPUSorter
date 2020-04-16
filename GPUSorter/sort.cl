@@ -120,11 +120,18 @@ kernel void sort(
                 dst_segments[segment_base_idx] = left_segment;
                 
                 idx_t chunks_end = chunks_base_idx + chunks_count_left;
-                while (chunks_base_idx < chunks_end)
+                for (idx_t i = 0; i < chunks_count_left; ++i)
                 {
-                    chunks[chunks_base_idx];
-                    ++chunks_base_idx;
+                    partition_segment_chunk_ex new_chunk;
+                    new_chunk.segment_idx = segment_base_idx;
+                    new_chunk.chunk.start = left_segment.global_start_idx + i * PARTITION_ELEMENTS_PER_WORKGROUP;
+                    new_chunk.chunk.end = ((i+1) == chunks_count_left) ? left_segment.global_end_idx : new_chunk.chunk.start + PARTITION_ELEMENTS_PER_WORKGROUP;
+                    //chunk.start = batch_idx * single_batch_size + idx_within_batch * elements_per_group; // inclusive, global start of the partition chunk
+                    //chunk.end = ((idx_within_batch + 1) == groups_per_batch) ? segment.global_end_idx : chunk.start + elements_per_group; // exclusive
+                    chunks[chunks_base_idx + i] = new_chunk;
+                    
                 }
+                chunks_base_idx += chunks_count_left;
                 ++segment_base_idx;
             }
             else if (total_left > 0)
