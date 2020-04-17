@@ -66,10 +66,10 @@ namespace HPC
         assert(err == CL_SUCCESS);
         auto program = bc::program(prog, false);
         program.build(options.str());
+        //auto _sortKernel2 = program.create_kernel("process_sort_results");
+        _sortKernel = program.create_kernel("kernel1");
 
-        _sortKernel = program.create_kernel("sort");
-
-       
+        
     }
     void GPUFloatSorter::Sort(boost::compute::vector<int>& src, boost::compute::vector<int>& dst, boost::compute::command_queue& queue)
     {
