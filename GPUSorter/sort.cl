@@ -54,7 +54,7 @@ kernel void sort2(
     idx_t segments_count    
     )
 {
-    if (global_id(0) == 0)
+    if (get_global_id(0) == 0)
     {
         printf("hello");
     }
