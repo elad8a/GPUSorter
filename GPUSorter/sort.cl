@@ -162,18 +162,12 @@ kernel void sort(
             partition_segment_result current_result = results[i];
 
 
-            // left segment calc
-            partition_segment left_segment;
-            left_segment.global_start_idx = segment.global_start_idx;
-            left_segment.global_end_idx = current_result.smaller_than_pivot_upper; // +1 ? 
+
             
-            // right segment calc
-            partition_segment right_segment;
-            right_segment.global_start_idx = current_result.greater_than_pivot_lower;
-            right_segment.global_end_idx = segment.global_end_idx;
+
             
             idx_t total_left = current_result.smaller_than_pivot_upper - segment.global_start_idx; 
-            idx_t total_right = right_segment.global_end_idx - right_segment.global_start_idx; 
+            idx_t total_right = segment.global_end_idx - current_result.greater_than_pivot_lower; 
 
             // allocate space for segments
             idx_t segments_to_allocate = (total_left > ALTERNATIVE_SORT_THRESHOLD) + (total_right > ALTERNATIVE_SORT_THRESHOLD);
@@ -193,6 +187,12 @@ kernel void sort(
             
             if (total_left > ALTERNATIVE_SORT_THRESHOLD)
             {   
+                // left segment calc
+                partition_segment left_segment;
+
+                left_segment.global_start_idx = segment.global_start_idx;
+                left_segment.global_end_idx = current_result.smaller_than_pivot_upper;
+                left_segment.pivot = dst[left_segment.global_start_idx]; // memory consistency?
                 dst_segments[segment_base_idx] = left_segment;
                 
 
@@ -219,7 +219,13 @@ kernel void sort(
             }
 
             if (total_right > ALTERNATIVE_SORT_THRESHOLD)
-            {   
+            {               
+                // right segment calc
+                partition_segment right_segment;
+                right_segment.global_start_idx = current_result.greater_than_pivot_lower;
+                right_segment.global_end_idx = segment.global_end_idx;
+                right_segment.pivot = dst[right_segment.global_start_idx]; // memory consistency?
+
                 dst_segments[segment_base_idx] = right_segment;
                 
                 for (idx_t i = 0; i < chunks_count_right; ++i)
