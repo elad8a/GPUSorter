@@ -2,7 +2,7 @@
 inline const std::string PARTITION_KERNEL_STRING =
 #include "../GPUSorter/partition.cl"
 "";
-inline const std::string QSORT_KERNEL_STRING =
+inline const std::string SORT_KERNEL_STRING =
 #include "../GPUSorter/sort.cl"
 "";
 

@@ -6,10 +6,10 @@
     <ClInclude Include="bitonic_sort.cl">
       <Filter>kernels</Filter>
     </ClInclude>
+    <ClInclude Include="sort_types.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GPUFloatSorter.cpp" />
-    <ClCompile Include="main.cpp" />
     <ClCompile Include="pch.cpp" />
   </ItemGroup>
   <ItemGroup>

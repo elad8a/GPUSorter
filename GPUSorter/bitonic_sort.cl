@@ -1,12 +1,18 @@
 R""(
 
-#ifndef TARGET_TYPES
-#define TARGET_TYPES
-typedef float data_t;
+#ifndef TARGET_TYPE_GUARD
+#define TARGET_TYPE_GUARD
 typedef uint idx_t;
+#ifdef TARGET_TYPE
+typedef TARGET_TYPE data_t;
+#else
+typedef float data_t;
+#endif
+#endif
+#ifndef MAX_GROUP_SIZE
+#define MAX_GROUP_SIZE 256
 #endif
 
-#define MAX_GROUP_SIZE 256
 #define CACHE_SIZE (MAX_GROUP_SIZE * 2)
 #define MAX_BITONIC_WORK_SIZE (MAX_GROUP_SIZE * 2)
 

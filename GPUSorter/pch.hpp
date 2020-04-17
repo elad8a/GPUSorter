@@ -24,3 +24,4 @@
 
 #include <boost/noncopyable.hpp>
 #include <boost/compute.hpp>
+#include <boost/format.hpp>

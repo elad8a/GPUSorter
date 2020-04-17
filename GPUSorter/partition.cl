@@ -1,8 +1,12 @@
 R""(
-#ifndef TARGET_TYPES
-#define TARGET_TYPES
-typedef float data_t;
+#ifndef TARGET_TYPE_GUARD
+#define TARGET_TYPE_GUARD
 typedef uint idx_t;
+#ifdef TARGET_TYPE
+typedef TARGET_TYPE data_t;
+#else
+typedef float data_t;
+#endif
 #endif
 
 // a partion segment represent a single partition

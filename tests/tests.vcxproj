@@ -100,6 +100,11 @@
     <ClInclude Include="sorting_kernels.hpp" />
     <ClInclude Include="tests.utils.hpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GPUSorter\GPUSorter.vcxproj">
+      <Project>{cd9846cb-4861-4b4e-b83f-c8e3b97b88b3}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

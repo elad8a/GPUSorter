@@ -1,18 +1,32 @@
 R""(
 //#include "partition.cl"
 
-#ifndef TARGET_TYPES
-#define TARGET_TYPES
-typedef float data_t;
+#ifndef TARGET_TYPE_GUARD
+#define TARGET_TYPE_GUARD
 typedef uint idx_t;
+#ifdef TARGET_TYPE
+typedef TARGET_TYPE data_t;
+#else
+typedef float data_t;
 #endif
+#endif
+
+#ifndef MAX_GROUP_SIZE
+#define MAX_GROUP_SIZE 256
+#endif
+
+#define ALTERNATIVE_SORT_THRESHOLD (MAX_GROUP_SIZE * 2)
+
+#ifndef PARTITION_ELEMENTS_PER_WORKGROUP
+#define PARTITION_ELEMENTS_PER_WORKGROUP (MAX_GROUP_SIZE * 4)
+#endif
+
+
 data_t median3(data_t x1, data_t x2, data_t x3) 
 {
     return min(max(x1, x2), x3);
 }
 
-#define ALTERNATIVE_SORT_THRESHOLD 512
-#define PARTITION_ELEMENTS_PER_WORKGROUP (512 * 4)
 
 
 typedef struct partition_segment_chunk_ex
@@ -27,7 +41,25 @@ typedef struct bitonic_segment
     idx_t global_end_idx;
 } bitonic_segment;
 
+kernel void sort2(
+    global data_t* src,
+    global data_t* dst,
+    global partition_segment* segments,
+    global partition_segment_chunk_ex* chunks,
+    global partition_segment_result* results,
+    global partition_segment* dst_segments,
+    global partition_segment_result* dst_results,
+    global bitonic_segment* bitonic_segments,
+    idx_t bitonic_segments_count,
+    idx_t segments_count    
+    )
+{
+    if (global_id(0) == 0)
+    {
+        printf("hello");
+    }
 
+}
 
 kernel void sort(
     global data_t* src,
@@ -39,8 +71,7 @@ kernel void sort(
     global partition_segment_result* dst_results,
     global bitonic_segment* bitonic_segments,
     idx_t bitonic_segments_count,
-    idx_t segments_count
-    
+    idx_t segments_count    
     )
 {
     idx_t local_idx = get_local_id(0);
@@ -167,28 +198,50 @@ kernel void sort(
                 right_segment.global_end_idx = current_result.smaller_than_pivot_upper; // +1 ?    
                 bitonic_segments[bitonic_idx] = right_segment;
             }
-        }
 
-        if (local_idx == 0)
-        {
+
+            barrier(CLK_LOCAL_MEM_FENCE);
+
+            if (local_idx == 0)
+            {
  
-            if (chunks_allocate_idx > 0)
-            {
-                // dispatch this kernel again using double amount of segments
-                queue_t q = get_default_queue();
-                //enqueue_kernel(
-                //    q,
-                //    CLK_ENQUEUE_FLAGS_WAIT_KERNEL,
-                //    ndrange_1D(1),
-                //    ^{ relauncher_kernel(d, dn, blocks, parents, result, work, done, done_size, MAXSEQ, num_workgroups); }
-                //); 
-            }
+                if (chunks_allocate_idx > 0)
+                {
+                    // dispatch this kernel again using double amount of segments
+                    queue_t q = get_default_queue();
+                    enqueue_kernel(
+                        q,
+                        CLK_ENQUEUE_FLAGS_WAIT_KERNEL,
+                        ndrange_1D(256 * 5, 256),
+                        ^{ 
+                        sort2(
+                            dst,
+                            src,
+                            dst_segments,
+                            chunks,
+                            dst_results,
+                            segments,
+                            results,                        
+                            bitonic_segments,
+                            0,
+                            0    
+                            ); 
+                        }
+                    
+                    ); 
+                }
 
-            if (bitonic_segments_allocate_idx > 0)
-            {
-                // dispatch bitonic sort to same destination
-            }           
+                else if (bitonic_segments_allocate_idx > 0)
+                {
+                    // dispatch bitonic sort to same destination
+                }           
+            }            
+
+
+
         }
+
+
     }
 
 }
