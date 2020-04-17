@@ -326,7 +326,7 @@ kernel void sort(
 
 }
 
-kernel void kernel2(global float* src)
+__kernel void kernel2(global float* src)
 {
     local int just_a_local;
 
@@ -334,12 +334,32 @@ kernel void kernel2(global float* src)
     {
         just_a_local = 0;
     }
+
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    //atomic_add(&just_a_local, 5);
+    atomic_add(&just_a_local, 5);
 }
 
-kernel void kernel1(global float* src)
+
+void kernel3(global float* src, local int* just_a_local)
+{
+
+
+    if (get_local_id(0))
+    {
+        *just_a_local = 0;
+    }
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+    
+    int val = atomic_add((volatile local int*)just_a_local, 5);
+
+    int val2 = work_group_scan_exclusive_add(val); 
+
+    printf("yes");
+}
+
+__kernel void kernel1(global float* src)
 {
 
     local int just_a_local;
@@ -355,14 +375,16 @@ kernel void kernel1(global float* src)
 
     if (get_global_id(0) == 0)
     {
+        void (^fun_blk)(local void*) = ^(local void* just_a_local) {
+  
+        kernel3(src, (local int*)just_a_local);
+        };
          enqueue_kernel(
                  get_default_queue(),
                  CLK_ENQUEUE_FLAGS_WAIT_KERNEL,
                  ndrange_1D(1),
-                 ^{ 
-                 kernel2(src); 
-                 }
-             
+                 fun_blk,
+                 4
              ); 
     }
 
