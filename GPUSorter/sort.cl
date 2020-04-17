@@ -41,6 +41,27 @@ typedef struct bitonic_segment
     idx_t global_end_idx;
 } bitonic_segment;
 
+kernel void sort3(
+    global data_t* src,
+    global data_t* dst,
+    global partition_segment* segments,
+    global partition_segment_chunk_ex* chunks,
+    global partition_segment_result* results,
+    global partition_segment* dst_segments,
+    global partition_segment_result* dst_results,
+    global bitonic_segment* bitonic_segments,
+    idx_t bitonic_segments_count,
+    idx_t segments_count    
+    )
+{
+    if (get_global_id(0) == 0)
+    {
+        printf("hello 3");
+    }
+
+}
+
+
 kernel void sort2(
     global data_t* src,
     global data_t* dst,
@@ -56,7 +77,29 @@ kernel void sort2(
 {
     if (get_global_id(0) == 0)
     {
-        printf("hello");
+        printf("hello 2");
+
+        queue_t q = get_default_queue();
+        enqueue_kernel(
+            q,
+            CLK_ENQUEUE_FLAGS_WAIT_KERNEL,
+            ndrange_1D(1),
+            ^{ 
+            sort3(
+                src,
+                dst,
+                segments,
+                chunks,
+                results,
+                dst_segments,
+                dst_results,                        
+                bitonic_segments,
+                0,
+                0    
+                ); 
+            }
+        
+        ); 
     }
 
 }

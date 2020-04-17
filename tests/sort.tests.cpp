@@ -12,6 +12,13 @@ TEST_CASE("partition 2", "[algo] [sort] [fail]")
     using data_t = float;
     auto queue = boost::compute::system::default_queue();
 
+    boost::compute::command_queue device_default_queue(
+        queue.get_context(),
+        queue.get_device(),
+        CL_QUEUE_ON_DEVICE |
+        CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE |
+        CL_QUEUE_ON_DEVICE_DEFAULT
+        );
 
     //auto min_val = 0.0f;
     //auto max_val = 5000.0f;
@@ -22,7 +29,7 @@ TEST_CASE("partition 2", "[algo] [sort] [fail]")
     std::vector<int> host_vec{
         999,
         1, 1000, 2134, 22, 3333,5455, 13,4243, 21, 9999, 12,5444, 13, 7721, 54,6200, 13, 0, 8888, 5,8888, 43, 1454, 41, 24,
-        66, 85, 6, 7, 12, 76
+        66, 85, 6, 7, 999, 76
 
 
     };
@@ -35,7 +42,7 @@ TEST_CASE("partition 2", "[algo] [sort] [fail]")
     GPUFloatSorter sorter(queue, 32*2);
 
     sorter.Sort(device_src_vec, device_dst_vec, queue);
-
+    queue.finish();
     bc::copy(device_dst_vec.begin(), device_dst_vec.end(), host_dst_vec.begin());
 
 
